@@ -1,8 +1,21 @@
-import { registerRootComponent } from 'expo';
+import "react-native-gesture-handler"; // Must be at the top
+import { registerRootComponent } from "expo";
+import React from "react";
+import { AppRegistry } from "react-native";
+import App from "./App";
+import { AuthContextProvider } from "./context/authContext";
+import { name as appName } from "./app.json";
+import { RegisterContextProvider } from "./hooks/useRegisterContext";
+import { BookProvider } from "./context/bookContext";
 
-import App from './App';
+const RootComponent = () => (
+  <AuthContextProvider>
+    <RegisterContextProvider>
+      <BookProvider />
+      <App />
+    </RegisterContextProvider>
+  </AuthContextProvider>
+);
 
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
-registerRootComponent(App);
+AppRegistry.registerComponent(appName, () => RootComponent);
+registerRootComponent(RootComponent);
