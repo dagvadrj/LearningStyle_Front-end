@@ -1,0 +1,232 @@
+  Ангилал
+       {/* Categories Section */}
+          <View style={styles.categoriesContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoriesContent}
+            >
+              {/* Бүх хичээл харах товч */}
+              {[{ _id: "all", lessonName: "Бүх хичээл" }, ...lessons].map(
+                (lesson) => (
+                  <TouchableOpacity
+                    key={lesson._id}
+                    onPress={() =>
+                      filterLessons(
+                        lesson._id === "all" ? "all" : lesson.lessonName
+                      )
+                    }
+                    className="text-gray-900 items-center bg-[#ffb22c]  hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-md px-3 py-2 text-xs me-2 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:focus:ring-gray-700"
+                    style={[
+                      selectedCategory === lesson.lessonName && {
+                        backgroundColor: "#FF6F00",
+                      },
+                    ]}
+                  >
+                    <Text style={styles.categoryButtonText}>
+                      {lesson.lessonName}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              )}
+            </ScrollView>
+          </View>
+
+
+
+          <TouchableOpacity
+  key={item._id}
+  className="bg-white mx-4 my-2 rounded-2xl shadow p-4"
+  onPress={() => {
+    if (item.status === 0) {
+      navigation.navigate("LessonDetail", {
+        lessonId: item.lessonId,
+        contentTitle: item.contentTitle,
+      });
+    }
+  }}
+>
+  {/* 🔒 Төлбөртэй badge зүүн дээд буланд */}
+  {item.status === 1 && (
+    <View className="absolute top-2 left-2 bg-yellow-400 px-3 py-1 rounded-full z-10">
+      <Text className="text-xs font-bold text-gray-900">Төлбөртэй</Text>
+    </View>
+  )}
+
+  <View className="flex-row items-center mb-2">
+    <View className="bg-orange-600 w-12 h-12 justify-center items-center rounded-full">
+      <AntDesign name="filetext1" size={24} color="white" />
+    </View>
+  </View>
+
+  <Text className="text-base font-bold text-gray-900 mb-1">
+    {item.contentTitle}
+  </Text>
+
+  <View className="mb-2 flex-col items-end justify-baseline">
+    <TouchableOpacity
+      onPress={() => {
+        if (item.status === 0) {
+          navigation.navigate("LessonDetail", {
+            lessonId: item.lessonId,
+            contentTitle: item.contentTitle,
+          });
+        }
+      }}
+      className="bg-gray-200 flex-row rounded-full"
+    >
+      {item.status === 0 ? (
+        <>
+          <Text className="text-base p-2 px-4 font-bold text-gray-900">
+            Үзэх
+          </Text>
+          <View className="bg-white rounded-full items-center justify-center p-2">
+            <Ionicons name="eye" size={20} color="gray" />
+          </View>
+        </>
+      ) : (
+        <>
+          <Text className="text-base p-2 px-4 font-bold text-gray-900">
+            Төлбөртэй
+          </Text>
+          <View className="bg-white rounded-full items-center justify-center p-2">
+            <Ionicons name="document-lock" size={20} color="gray" />
+          </View>
+        </>
+      )}
+    </TouchableOpacity>
+  </View>
+</TouchableOpacity>
+
+
+
+{!submitted ? (
+          <>
+            <Text style={styles.sectionTitle}>Сэтгэгдэл үлдээх</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Сэтгэгдлээ бичнэ үү..."
+              value={comment}
+              onChangeText={setComment}
+              multiline
+            />
+            <TouchableOpacity
+              onPress={handleSubmit}
+              disabled={comment.trim().length === 0}
+              style={[
+                styles.button,
+                comment.trim().length === 0 && styles.buttonDisabled,
+              ]}
+            >
+              <Text style={styles.buttonText}>Илгээх</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <View style={styles.center}>
+            <Text style={[styles.sectionTitle, { color: "green" }]}>
+              Баярлалаа!
+            </Text>
+            <Text style={styles.text}>
+              Таны сэтгэгдэл амжилттай илгээгдлээ.
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                setComment("");
+                setSubmitted(false);
+              }}
+              style={[styles.button, { marginTop: 12 }]}
+            >
+              <Text style={styles.buttonText}>Шинэ сэтгэгдэл үлдээх</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+
+
+
+
+
+        import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  TouchableOpacity,
+  SafeAreaView,
+} from "react-native";
+import YoutubePlayer from "react-native-youtube-iframe";
+import { Ionicons } from "@expo/vector-icons";
+
+const VideoPlayer = () => {
+  const [videoUrl, setVideoUrl] = useState(null);
+  const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // ✅ Туршилтын YouTube линк оруулж байна
+  useEffect(() => {
+    const testUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+    setVideoUrl(testUrl);
+    setLoading(false);
+  }, []);
+
+  // 🎯 YouTube линкээс Video ID салгаж авна
+  const getYoutubeVideoId = (url) => {
+    if (!url) return null;
+    const regExp =
+      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
+  };
+
+  const videoId = getYoutubeVideoId(videoUrl);
+
+  if (loading) {
+    return (
+      <View className="w-full h-64 flex justify-center items-center">
+        <ActivityIndicator size="large" color="#0066cc" />
+        <Text className="mt-2 text-gray-500">Бичлэг ачааллаж байна...</Text>
+      </View>
+    );
+  }
+
+  if (error || !videoId) {
+    return (
+      <View className="w-full h-64 flex justify-center items-center">
+        <Ionicons name="alert-circle-outline" size={48} color="#ff6b6b" />
+        <Text className="mt-2 text-gray-700">{error || "Видео байхгүй"}</Text>
+        <TouchableOpacity
+          className="mt-4 px-4 py-2 bg-blue-500 rounded-lg"
+          onPress={() =>
+            setVideoUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+          }
+        >
+          <Text className="text-white font-medium">Дахин оролдох</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaView className="m-4 h-full rounded-md overflow-hidden relative">
+      <YoutubePlayer
+        height={500}
+        play={playing}
+        videoId={videoId}
+        onChangeState={(state) => {
+          if (state === "ended") setPlaying(false);
+        }}
+      />
+      <View className="items-center">
+        <TouchableOpacity
+          onPress={() => setPlaying((prev) => !prev)}
+          className=" p-2 w-10 justify-center items-center bg-black/50 rounded-full"
+        >
+          <Ionicons name={playing ? "pause" : "play"} size={24} color="white" />
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export default VideoPlayer;

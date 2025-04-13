@@ -8,7 +8,11 @@ import {
   StatusBar,
   SafeAreaView,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView
 } from "react-native";
+import Ionicons from "react-native-vector-icons/Ionicons";
 import MyButton from "../components/MyButton";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { launchImageLibrary } from "react-native-image-picker";
@@ -22,7 +26,7 @@ const SignUp = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [register, setRegister] = useState("");
   const [phone_number, setPhonenumber] = useState("");
-  //const [role_id, setRoleid] = useState("");
+  const [role_id, setRoleid] = useState("67bd84aa93e35f33361d25fc");
   const [password, setPassword] = useState("");
   const [password1, setPassword1] = useState("");
   const [error, setError] = useState(null);
@@ -33,8 +37,6 @@ const SignUp = ({ navigation }) => {
   const handleSubmit = async () => {
     setError("");
     setIsLoading(true);
-
-  
 
     if (!isValidRegister(register)) {
       setError("Регистрийн дугаар буруу байна!");
@@ -49,12 +51,23 @@ const SignUp = ({ navigation }) => {
     }
 
     try {
+      console.log("Илгээж буй өгөгдөл:", {
+        first_name,
+        last_name,
+        email,
+        role_id,
+        phone_number,
+        register,
+        password,
+        password1,
+      });
       const response = await axios.post(
         "https://learningstyle-project-back-end.onrender.com/api/users",
         {
           first_name,
           last_name,
           email,
+          role_id,
           phone_number,
           register,
           password,
@@ -63,31 +76,61 @@ const SignUp = ({ navigation }) => {
         { headers: { "Content-Type": "application/json" } }
       );
       console.log("Response:", response.data);
+      
 
-      if (response.data.success) {
+      if (response.status === 201) {
         Alert.alert("Амжилттай", "Бүртгэл амжилттай! Нэвтэрнэ үү.", [
           { text: "OK", onPress: () => navigation.goBack() },
         ]);
       } else {
         throw new Error(response.data.error || "Алдаа гарлаа.");
       }
-    } catch (error) {
-      console.log("Алдаа:", error.response?.data || error.message);
-      setError(error.response?.data?.error || "Серверээс хариу ирсэнгүй.");
-    } finally {
-      setIsLoading(false);
+    }catch (error) {
+      console.log("Бүрэн алдааны мэдээлэл:", error);
+      console.log("Хариу:", error.response);
+      console.log("Хариуны өгөгдөл:", error.response?.data);
+      
+      // Алдааны мессежийг илүү найдвартай болгох
+      let errorMessage = "Бүртгэл үүсгэхэд алдаа гарлаа";
+      
+      if (error.response && error.response.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.msg) {
+          errorMessage = error.response.data.msg;
+        }
+      }
+      
+      setError(errorMessage);
     }
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-      <KeyboardAwareScrollView contentContainerStyle={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons
+            name="chevron-back-outline"
+            size={30}
+            color="black"
+          ></Ionicons>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Бүртгүүлэх</Text>
+      </View>
+      <KeyboardAvoidingView  style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
         <View style={styles.form}>
-          <Text style={styles.header}>Бүртгүүлэх</Text>
-
           {error && <Text style={styles.error}>{error}</Text>}
-
+          <ScrollView 
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={{ flexDirection: "row", marginTop: 20 }}>
             <TextInput
               style={styles.rowInput}
@@ -163,8 +206,9 @@ const SignUp = ({ navigation }) => {
               Нэвтрэх
             </Text>
           </TouchableOpacity>
+          </ScrollView>
         </View>
-      </KeyboardAwareScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -174,14 +218,24 @@ const styles = StyleSheet.create({
   imageContainer: { alignItems: "center", marginBottom: 15 },
   imagePickerText: { color: "#ffffff" },
   imagePreview: { width: 100, height: 100, borderRadius: 15, marginBottom: 15 },
-  form: { width: 350, padding: 20, borderRadius: 10 },
-  header: {
-    fontSize: 24,
-    fontWeight: "400",
-    color: "#333",
-    textAlign: "center",
-    marginBottom: 24,
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
+  form: { flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    paddingTop: 20,},
+  header: {
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    paddingVertical: 15,
+    borderBottomColor: "#ddd",
+    marginLeft: 20,
+  },
+  headerTitle: { fontSize: 18, color: "black", marginLeft: 20 },
   input: {
     borderBottomWidth: 1,
     borderBottomColor: "#ccc",

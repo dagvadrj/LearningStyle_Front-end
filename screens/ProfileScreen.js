@@ -2,432 +2,492 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
-  TextInput,
-  Image,
   TouchableOpacity,
-  ActivityIndicator,
-  Alert,
   StyleSheet,
+  SafeAreaView,
+  ActivityIndicator,
+  RefreshControl,
   ScrollView,
+  StatusBar,
+  Alert, // Alert нэмсэн
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Ionicons from "react-native-vector-icons/Ionicons";
 import axios from "axios";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Icon from "react-native-vector-icons/Feather";
-import MyButton from "../components/MyButton";
-MyButton;
-import * as ImagePicker from "expo-image-picker";
+import AntDesign from "@expo/vector-icons/AntDesign";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
+import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
+import Feather from "@expo/vector-icons/Feather";
 
-const ProfileScreen = ({ navigation }) => {
-  const baseUrl = "https://learningstyle-project-back-end.onrender.com/";
+// Constants
+const BASE_URL = "https://learningstyle-project-back-end.onrender.com/";
+const LEARNING_STYLE_NAMES = {
+  kinesthetic: "Практик", // Нэрийг богиносгосон
+  visual: "Визуал",
+  auditory: "Сонсгол",
+  reading_writing: "Унших/Бичих",
+};
+
+// Helper function for translating learning style
+const translateLearningStyle = (styleKey) => {
+  return LEARNING_STYLE_NAMES[styleKey] || "Тодорхойгүй";
+};
+
+function ProfileScreen({ navigation }) {
   const [user, setUser] = useState(null);
+  // learningStyleName state-г тусдаа байлгах шаардлагагүй, user state-с шууд гаргаж авч болно
+  // const [learningStyleName, setLearningStyleName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null); // Алдаа хадгалах state
 
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [register, setRegister] = useState("");
-  const [learningStyle, setLearningStyle] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [user_photo, setUserphoto] = useState("");
-  const [angi, setAngi] = useState("");
-  const [description, setDescription] = useState("");
-
-
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const token = await AsyncStorage.getItem("user_token");
-        if (token) {
-          const response = await axios.get(`${baseUrl}api/users/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          if (response.data) {
-            setUser(response.data);
-            setFirstName(response.data.first_name);
-            setLastName(response.data.last_name);
-            setEmail(response.data.email);
-            setRegister(response.data.register);
-            setPhoneNumber(response.data.phone_number);
-            setLearningStyle(response.data.learningStyle);
-            setAngi(response.data.class);
-            setDescription(response.data.description);
-            setUserphoto(response.data.user_photo);
-            setLearningStyle(response.data.learningStyle);
-            setAngi(response.data.class);
-            setDescription(response.data.description);
-            console.log(response.data.description);
-          }
-        }
-        
-      } catch (error) {
-        console.error("Алдаа:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUserData();
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      const { status: cameraStatus } =
-        await Camera.requestCameraPermissionsAsync();
-      const { status: mediaStatus } =
-        await MediaLibrary.requestPermissionsAsync();
-      setHasCameraPermission(cameraStatus === "granted");
-      setHasMediaLibraryPermission(mediaStatus === "granted");
-    })();
-  }, []);
-
-  const handleImagePick = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setUserphoto(result.assets[0].uri);
-    }
-  };
-  const takePicture = async () => {
-    if (cameraRef.current) {
-      let photo = await cameraRef.current.takePictureAsync({
-        base64: true,
-      });
-      setUserphoto(photo.uri);
-    }
-  };
-
-  const handleSave = async () => {
+  // Гарах функц
+  const handleLogout = useCallback(async () => {
     try {
-      if (!user || !user._id) {
-        Alert.alert("Алдаа", "Хэрэглэгчийн мэдээлэл олдсонгүй.");
-        return;
-      }
+      await AsyncStorage.multiRemove(["user_token", "user_data"]); // Олон зүйлсийг зэрэг устгах
+      // navigation.replace нь stack-с одоогийн дэлгэцийг устгаад шинээр нээнэ
+      navigation.replace("Login");
+    } catch (e) {
+      console.error("Гарах үед алдаа:", e);
+      Alert.alert("Алдаа", "Системээс гарахад алдаа гарлаа.");
+    }
+  }, [navigation]);
 
+  // Хэрэглэгчийн мэдээлэл татах функц
+  const fetchUserData = useCallback(async () => {
+    setError(null); // Шинээр татахдаа өмнөх алдааг арилгах
+    // setLoading(true); // Refresh хийх үед энэ нь refreshing state-р зохицуулагдана
+
+    try {
       const token = await AsyncStorage.getItem("user_token");
       if (!token) {
-        Alert.alert("Алдаа", "Токен олдсонгүй. Та дахин нэвтэрнэ үү.");
+        console.log("Токен олдсонгүй, нэвтрэх хуудас руу шилжиж байна.");
+        handleLogout(); // Токен байхгүй бол шууд гаргах
         return;
       }
 
-      const formData = new FormData();
+      const response = await axios.get(`${BASE_URL}api/users/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000, // 10 секунд хүлээх timeout нэмэх
+      });
 
-      // Өөрчлөгдсөн мэдээллүүдийг нэмэх
-      if (firstName !== user.first_name)
-        formData.append("first_name", firstName);
-      if (lastName !== user.last_name) formData.append("last_name", lastName);
-      if (email !== user.email) formData.append("email", email);
-      if (phoneNumber !== user.phone_number)
-        formData.append("phone_number", phoneNumber);
-
-      // Зураг оруулсан эсэхийг шалгах
-      if (user_photo) {
-        let filename = user_photo.split("/").pop();
-        let match = /\.(\w+)$/.exec(filename);
-        let type = match ? `image/${match[1]}` : `image`;
-
-        formData.append("user_photo", {
-          uri: user_photo,
-          name: filename,
-          type,
-        });
-      }
-
-      if (formData._parts.length === 0) {
-        Alert.alert("Анхаар!", "Та ямар нэг мэдээлэл өөрчлөх хэрэгтэй.");
-        return;
-      }
-
-      // Сервер рүү илгээх
-      const response = await axios.patch(
-        `${baseUrl}api/users/${user._id}`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      const updatedUser = response.data.user;
-      await AsyncStorage.setItem("user_data", JSON.stringify(updatedUser));
-
-      setUser(updatedUser);
-      Alert.alert("Амжилттай", "Мэдээлэл шинэчлэгдлээ!");
-    } catch (error) {
-      console.error("Алдаа:", error);
-
-      if (error.response) {
-        if (error.response.status === 400) {
-          Alert.alert("Алдаа", "Буруу хүсэлт. Дахин оролдоно уу.");
-        } else if (error.response.status === 404) {
-          Alert.alert("Алдаа", "Хэрэглэгч олдсонгүй.");
-        } else if (error.response.status === 500) {
-          Alert.alert("Серверийн алдаа", "Дотоод серверийн алдаа гарлаа.");
-        } else {
-          Alert.alert("Алдаа", `Тодорхойгүй алдаа: ${error.response.status}`);
-        }
-      } else if (error.request) {
-        Alert.alert("Алдаа", "Сервертэй холбогдож чадсангүй.");
+      if (response.data) {
+        setUser(response.data);
+        // learningStyleName-г тусад нь state-д хадгалах шаардлагагүй
+        // const translatedName = translateLearningStyle(response.data.learningStyle);
+        // setLearningStyleName(translatedName);
       } else {
-        Alert.alert("Алдаа", "Шинэчлэх явцад алдаа гарлаа!");
+        // Холбогдсон ч дата ирээгүй бол алдаа гэж үзэх эсвэл гаргах
+        console.warn("Серверээс хэрэглэгчийн мэдээлэл ирсэнгүй.");
+        setError("Хэрэглэгчийн мэдээлэл татахад алдаа гарлаа.");
+        // Эсвэл handleLogout(); хийж болно
       }
+    } catch (err) {
+      console.error("Хэрэглэгчийн мэдээлэл татах үед алдаа:", err);
+      if (err.response) {
+        // Серверээс статус кодтой алдаа ирсэн
+        if (err.response.status === 401 || err.response.status === 403) {
+          // Unauthorized эсвэл Forbidden
+          console.log("Токен хүчингүй эсвэл хугацаа дууссан, гарч байна.");
+          Alert.alert("Нэвтрэлт амжилтгүй", "Таны нэвтрэх хугацаа дууссан байна. Дахин нэвтэрнэ үү.");
+          handleLogout();
+        } else {
+          setError(`Серверийн алдаа: ${err.response.status}. Дахин оролдоно уу.`);
+        }
+      } else if (err.request) {
+        // Сүлжээний алдаа эсвэл timeout
+        setError("Сүлжээний алдаа. Интернэт холболтоо шалгаад дахин оролдоно уу.");
+      } else {
+        // Бусад алдаа
+        setError("Мэдээлэл татахад тодорхойгүй алдаа гарлаа.");
+      }
+      setUser(null); // Алдаа гарсан үед хэрэглэгчийн мэдээллийг хоослох
+    } finally {
+      // Эхний ачааллалтын loading-г унтраах
+      // Refresh хийх үед setLoading(false) хийх шаардлагагүй, onRefresh дотор refreshing state зохицуулна
+      if (loading) setLoading(false);
     }
-  };
+  }, [handleLogout, loading]); // loading-г хамааралд нэмсэн
 
-  const handleLogout = async () => {
-    await AsyncStorage.removeItem("user_token");
-    await AsyncStorage.removeItem("user_data");
-    setUser(null);
-    navigation.navigate("Main");
-  };
+  // Refresh хийх үйлдэл
+  const onRefresh = useCallback(async () => {
+    console.log("Refreshing data...");
+    setRefreshing(true);
+    await fetchUserData();
+    setRefreshing(false);
+    console.log("Refresh finished.");
+  }, [fetchUserData]); // fetchUserData өөрчлөгдөхгүй тул хамааралд байх нь зөв
 
+  // Анх ороход болон navigation буцаж ирэхэд датаг татах
+  useEffect(() => {
+    // navigation focus event-г сонсох
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log("Profile screen focused, fetching data...");
+      // setLoading(true); // Фокус хийх бүрт loading харуулах эсэхийг шийднэ
+      fetchUserData();
+    });
+
+    // Компонент unmount хийгдэхэд listener-г устгах
+    return unsubscribe;
+  }, [navigation, fetchUserData]); // хамаарлуудыг нэмсэн
+
+  // Learning style нэрийг user state-с гаргаж авах
+  const learningStyleName = user ? translateLearningStyle(user.learningStyle) : "Тодорхойгүй";
+
+  // --- UI Rendering ---
+
+  // Loading state UI
   if (loading) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator size="large" color="tomato" />
-        <Text>Ачааллаж байна...</Text>
-      </View>
+      <SafeAreaView style={styles.centeredContainer}>
+        <ActivityIndicator size="large" color="#ffb22c" />
+        <Text style={styles.loadingText}>Ачааллаж байна...</Text>
+      </SafeAreaView>
     );
   }
 
+  // Error state UI
+  if (error && !user) { // Хэрэглэгчийн дата байхгүй үед л алдааг бүтэн дэлгэцээр харуулах
+    return (
+      <SafeAreaView style={styles.centeredContainer}>
+         <StatusBar barStyle="dark-content" backgroundColor={styles.container.backgroundColor} />
+          {/* Header-г алдааны дэлгэцэнд харуулах эсэх */}
+          <View style={styles.header}>
+                <TouchableOpacity onPress={() => navigation.navigate("Main")} style={styles.headerButton}>
+                    <Ionicons name="chevron-back-outline" size={30} color="#333"/>
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Профайл</Text>
+                <View style={styles.headerButton} /> {/* Title-г голлуулахын тулд хоосон зай */}
+            </View>
+        <View style={styles.errorContent}>
+            <MaterialIcons name="error-outline" size={60} color="#FF6347" />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={fetchUserData}>
+                 <Text style={styles.retryButtonText}>Дахин оролдох</Text>
+             </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+
+  // Main content UI
   return (
     <SafeAreaView style={styles.container}>
-      {user ? (
-        <>
-          <View style={styles.imageContainer}>
-            <Image
-              source={{
-                uri: user_photo || `${baseUrl}public/${user.user_photo}`,
-              }}
-              style={styles.profileImage}
-            />
-            <TouchableOpacity
-              style={styles.imageButton}
-              onPress={handleImagePick}
-            >
-              <Icon name="plus" size={20} color="white" />
-            </TouchableOpacity>
+      <StatusBar barStyle="dark-content" backgroundColor={styles.container.backgroundColor} />
+        {/* Сайжруулсан Header */}
+        <View style={styles.header}>
+            <Text style={styles.headerTitle}>Профайл</Text>
+            {/* Header-н баруун талд товч нэмэх боломжтой, эсвэл title-г голлуулахын тулд хоосон зай */}
+        </View>
+
+      <ScrollView
+        contentContainerStyle={styles.scrollViewContent}
+        showsVerticalScrollIndicator={false} // Scrollbar нуух
+        refreshControl={
+          <RefreshControl
+             refreshing={refreshing}
+             onRefresh={onRefresh}
+             colors={["#ffb22c", "#FF6347"]} // Refresh icon өнгө
+             tintColor="#ffb22c" // iOS-д зориулсан өнгө
+           />
+        }
+      >
+         {/* Pull-to-refresh үед гарч болох алдааг харуулах */}
+         {error && user && (
+            <View style={styles.inlineErrorContainer}>
+                 <Text style={styles.inlineErrorText}>{error}</Text>
+            </View>
+          )}
+
+        {/* Хэрэглэгчийн мэдээлэл хэсэг */}
+        <TouchableOpacity
+          style={styles.userCard}
+          onPress={() => navigation.navigate("ProfileDetail")}
+          activeOpacity={0.8} // Дарах үеийн тунгалагшилтыг тохируулах
+        >
+          <View style={styles.userAvatarPlaceholder}>
+             {/* TODO: Хэрэглэгчийн зургийг нэмэх */}
+            <Ionicons name="person-outline" size={32} color="white" />
           </View>
-
-          <View style={{ flexDirection: "row" }}>
-            <Text style={styles.rowLabel}>Овог</Text>
-            <Text style={{ ...styles.rowLabel, paddingLeft: "40%" }}>Нэр</Text>
+          <View style={styles.userInfo}>
+             {/* Нэр, Овог хамтдаа */}
+            <Text style={styles.userName}>
+                {`${user?.first_name || ""} ${user?.last_name || "Хэрэглэгч"}`}
+            </Text>
+            <Text style={styles.userDetails}>Анги: {user?.class || "Тодорхойгүй"}</Text>
+            <Text style={styles.userDetails}>Сурах арга: {learningStyleName}</Text>
           </View>
-          <View
-            style={{
-              flexDirection: "row",
-            }}
-          >
-            <TextInput
-              style={styles.rowInput}
-              value={lastName}
-              onChangeText={setLastName}
-            />
+          {/* Сумыг Icon болгосон */}
+          <Feather name="chevron-right" size={26} color="white" />
+        </TouchableOpacity>
 
-            <TextInput
-              style={styles.rowInput}
-              value={firstName}
-              onChangeText={setFirstName}
-            />
-          </View>
-          <Text style={styles.label}>И-мэйл</Text>
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-          />
+        {/* Үйлдэлүүдийн жагсаалт */}
+        <View style={styles.actionListContainer}>
+             {/* Найз */}
+             <ActionItem
+                icon={<FontAwesome5 name="user-friends" size={18} color="#ffb22c" />}
+                label="Найзууд" // Нэрийг өөрчилсөн
+                onPress={() => navigation.navigate("Friends")}
+             />
+              {/* Content Management Section */}
+              <ActionSection title="Контент Удирдах">
+                 <ActionItem
+                    icon={<MaterialIcons name="library-add" size={20} color="#ffb22c" />} // Icon өөрчилсөн
+                    label="Хичээл Нэмэх" // Нэрийг өөрчилсөн
+                    onPress={() => navigation.navigate("AddLesson")}
+                 />
+                 <ActionItem
+                    icon={<AntDesign name="filetext1" size={20} color="#ffb22c" />}
+                    label="Текст Оруулах" // Нэрийг өөрчилсөн
+                    onPress={() => navigation.navigate("AddLessonText")}
+                 />
+                 <ActionItem
+                    icon={<AntDesign name="addfile" size={20} color="#ffb22c" />}
+                    label="Файл Оруулах" // Нэрийг өөрчилсөн
+                    onPress={() => navigation.navigate("AddLessonMaterial")}
+                 />
+             </ActionSection>
 
-          <Text style={styles.label}>Утасны дугаар</Text>
-          <TextInput
-            style={styles.input}
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-            keyboardType="phone-pad"
-          />
-          <Text style={styles.label}>Регистрийн дугаар</Text>
-          <TextInput
-            style={styles.input}
-            value={register}
-            onChangeText={setRegister}
-            keyboardType="phone-pad"
-          />
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "baseline",
-              justifyContent: "baseline",
-            }}
-          >
-            <Text style={styles.label}>Таны сурах чиглэл</Text>
+              {/* Tools Section */}
+              <ActionSection title="Хэрэгслүүд">
+                  <ActionItem
+                    icon={<FontAwesome6 name="eye" size={20} color="#ffb22c" />}
+                    label="Нүдний хөдөлгөөн хянах" // Нэрийг тодруулсан
+                    onPress={() => navigation.navigate("EyeTracking")}
+                  />
+              </ActionSection>
 
-            <TouchableOpacity
-              style={styles.testBtn}
-              value={learningStyle}
-              onPress={() => {
-                navigation.navigate("Test");
-              }}
-            >
-              <Text style={{ color: "#fff" }}>Тест өгөх</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.label}>Анги</Text>
-          <TextInput
-            style={styles.input}
-            value={angi}
-            onChangeText={setAngi}
-            keyboardType="phone-pad"
-          />
-          <Text style={styles.label}>Миний дэлгэрэнгүй</Text>
-          <TextInput
-            style={styles.description}
-            value={description}
-            onChangeText={setDescription}
-          />
+            {/* Information Section */}
+            <ActionSection title="Мэдээлэл">
+               <ActionItem
+                  icon={<Ionicons name="information-circle-outline" size={24} color="#ffb22c" />}
+                  label="Бидний тухай"
+                  onPress={() => navigation.navigate("Info")}
+                />
+            </ActionSection>
 
-          <TouchableOpacity style={styles.buttonSave} onPress={handleSave}>
-            <Text style={styles.btnSaveText}>Хадгалах</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Icon name="log-out" size={24} color="white" />
-          </TouchableOpacity>
-        </>
-      ) : (
-          <SafeAreaView style={{ alignItems: "center", marginTop: 20 }}>
-            <Text style={styles.info}>Хэрэглэгчийн мэдээлэл олдсонгүй.</Text>
-            <TouchableOpacity
-              style={styles.logoutButton}
-              onPress={handleLogout}
-            >
-              <Icon name="log-out" size={24} color="white" />
-            </TouchableOpacity>
-          </SafeAreaView>
-      )}
+
+            {/* Гарах товч */}
+             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.7}>
+                <Feather name="log-out" size={20} color="#FF6347"/>
+                 <Text style={styles.logoutButtonText}>Системээс Гарах</Text>
+             </TouchableOpacity>
+        </View>
+
+      </ScrollView>
     </SafeAreaView>
   );
-};
+}
 
+// Үйлдэлийн зүйлсийг харуулах туслах компонент
+const ActionItem = ({ icon, label, onPress }) => (
+     <TouchableOpacity style={styles.actionItem} onPress={onPress} activeOpacity={0.7}>
+         <View style={styles.actionIconContainer}>{icon}</View>
+         <Text style={styles.actionLabel}>{label}</Text>
+         <Feather name="chevron-right" size={22} color="#ccc" />
+     </TouchableOpacity>
+ );
+
+ // Үйлдэлийн хэсгийг харуулах туслах компонент
+ const ActionSection = ({ title, children }) => (
+     <View style={styles.actionSection}>
+         {title && <Text style={styles.actionSectionTitle}>{title}</Text>}
+         {children}
+     </View>
+ );
+
+
+// Сайжруулсан стильүүд
 const styles = StyleSheet.create({
-  container: {
+  centeredContainer: { // Loading болон Error үед ашиглах
     flex: 1,
-    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8f8f8", // container-тай ижил
     paddingHorizontal: 20,
   },
-  profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 2,
-    borderColor: "tomato",
+  container: { // Үндсэн дэлгэцийн container
+    flex: 1,
+    backgroundColor: "#f8f8f8", // Бага зэрэг өнгө нэмсэн
+    // paddingHorizontal: 10, // ScrollView дотор өгөх
   },
-  imageContainer: {
-    position: "relative",
-    alignItems: "baseline",
-    justifyContent: "center",
+  loadingText: {
+     marginTop: 10,
+     fontSize: 14,
+     color: '#555',
   },
-  imageButton: {
-    position: "absolute",
-    bottom: 5,
-    right: 270,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "tomato",
+  errorContent: { // Бүтэн дэлгэц эзлэх алдааны хэсэг
+    alignItems: 'center',
+  },
+  errorText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: "#FF6347",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  inlineErrorContainer: { // ScrollView доторх жижиг алдааны мөр
+      backgroundColor: '#FFEBEB',
+      padding: 10,
+      borderRadius: 8,
+      marginHorizontal: 15,
+      marginBottom: 10,
+  },
+  inlineErrorText: {
+      color: '#CC0000',
+      fontSize: 14,
+      textAlign: 'center',
+  },
+  retryButton: {
+      backgroundColor: '#ffb22c',
+      paddingVertical: 10,
+      paddingHorizontal: 25,
+      borderRadius: 8,
+  },
+  retryButtonText: {
+      color: 'white',
+      fontSize: 16,
+      fontWeight: 'bold',
+  },
+  header: { // Сайжруулсан Header стиль
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
+    paddingVertical: 10,
+    paddingHorizontal: 10, // Зайг багасгасан
+    backgroundColor: '#f8f8f8', // Container өнгөтэй ижил
+    // borderBottomWidth: 1, // Зураас хэрэггүй байж магадгүй
+    // borderBottomColor: "#eee",
+  },
+  headerButton: { // Буцах болон баруун талын товчны зай
+     width: 40, // Ижил хэмжээтэй байлгах
+     alignItems: 'center',
+  },
+  headerTitle: { // Header гарчиг
+    flex: 1, // Үлдсэн зайг эзэлнэ
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333", // Бараан өнгө
+    textAlign: "center", // Голлуулах
+  },
+  scrollViewContent: { // ScrollView доторх агуулгын стиль
+    paddingBottom: 30, // Доод талд зай авах
+     paddingHorizontal: 0, // Хажуугийн зайг картнууд өөрсдөө авна
+  },
+  userCard: { // Хэрэглэгчийн мэдээлэл харуулах карт
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ffb22c",
+    borderRadius: 15, // Илүү дугуй булан
+    padding: 18, // Доторх зайг нэмсэн
+    marginHorizontal: 15, // Хажуугийн зай
+    marginTop: 15, // Дээрээс авах зай
+    marginBottom: 20, // Доороос авах зай
+    elevation: 4, // Сүүдэр (Android)
+    shadowColor: "#ffb22c", // Сүүдэр өнгө
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
+    shadowRadius: 5,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 10,
-    marginBottom: 10,
-  },
-  description: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 16,
-    width: "100%",
-    height: "15%",
-    marginBottom: 10,
-  },
-  testBtn: {
-    width: "30%",
-    backgroundColor: "#FF6348",
-    height: 30,
+  userAvatarPlaceholder: { // Аватар байрлуулах тойрог
+    width: 55,
+    height: 55,
+    borderRadius: 27.5,
+    backgroundColor: "rgba(255, 255, 255, 0.3)", // Бага зэрэг тунгалаг цагаан
     justifyContent: "center",
-    borderRadius: 10,
-    marginLeft: "30%",
     alignItems: "center",
-    marginTop: 10,
+    marginRight: 15, // Текстнээс авах зай
   },
-  input: {
-    borderBottomWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 16,
-    width: "100%",
-    marginBottom: 10,
+  userInfo: { // Нэр, анги, арга барил багтах хэсэг
+    flex: 1, // Үлдсэн зайг эзэлнэ
   },
-  rowInput: {
-    borderBottomWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 16,
-    width: "50%",
+  userName: {
+    color: "white",
+    fontSize: 17, // Нэрийг томсгосон
+    fontWeight: "bold", // Тодруулсан
+    marginBottom: 4,
   },
-  rowLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 10,
+  userDetails: {
+    color: "white",
+    fontSize: 13, // Жижиг текст
+    fontWeight: "500",
+    opacity: 0.9, // Бага зэрэг тунгалаг
+  },
+  actionListContainer: { // Үйлдлийн жагсаалт багтаах container
+    paddingHorizontal: 15, // Доторх item-уудад хажуугийн зай өгөх
+  },
+   actionSection: {
+     marginBottom: 15, // Хэсгүүдийн хооронд зай
+     backgroundColor: 'white',
+     borderRadius: 12,
+     overflow: 'hidden', // Доторх item-уудын булан гарч ирэхгүй
+     elevation: 2,
+     shadowColor: "#ccc",
+     shadowOffset: { width: 0, height: 1 },
+     shadowOpacity: 0.2,
+     shadowRadius: 2,
+   },
+   actionSectionTitle: {
+     fontSize: 13,
+     fontWeight: '600',
+     color: '#555',
+     paddingHorizontal: 15,
+     paddingTop: 12,
+     paddingBottom: 5,
+     // textTransform: 'uppercase',
+   },
+  actionItem: { // Үйлдэл тус бүрийн мөр
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
+    paddingVertical: 14, // Зайг нэмсэн
+    paddingHorizontal: 15,
+    borderBottomWidth: 1, // Зураасаар тусгаарлах
+    borderBottomColor: '#f0f0f0', // Маш цайвар зураас
+  },
+  actionIconContainer: { // Icon багтаах хэсэг
+    width: 35, // Зай гаргах
+    alignItems: 'center',
+    marginRight: 15, // Текстнээс авах зай
+  },
+  actionLabel: { // Үйлдлийн нэр
+    flex: 1, // Үлдсэн зайг эзэлнэ
+    color: "#333",
+    fontSize: 15, // Хэмжээг бага зэрэг нэмсэн
+    fontWeight: "500",
   },
   logoutButton: {
-    position: "absolute",
-    right: 20,
-    bottom: 30,
-    backgroundColor: "tomato",
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  buttonSave: {
-    width: "100%",
-    backgroundColor: "#FF6348",
-    height: 40,
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF0F0', // Улаавтар цайвар дэвсгэр
     borderRadius: 10,
-    alignItems: "center",
-    marginTop: 10,
+    paddingVertical: 12,
+    marginHorizontal: 15, // Хажуугийн зай
+    marginTop: 25, // Дээрээс авах зай
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#FFDADA', // Улаавтар цайвар хүрээ
   },
-  btnSaveText: {
-    color: "white",
-    fontSize: 16,
+  logoutButtonText: {
+    color: '#FF6347', // Улаан өнгө
+    fontSize: 15,
+    fontWeight: '600',
+    marginLeft: 8,
   },
-  info: {
-    fontSize: 18,
-    color: "#333",
-  },
+
+  // Хуучин стильүүд (шаардлагагүй болсон байж магадгүй)
+  // backArrow: { ... },
+  // backArrowTitle: { ... },
+  // userButton: { ... }, // userCard-р солигдсон
+  // userIconContainer: { ... }, // userAvatarPlaceholder болсон
+  // userContent: { ... }, // userInfo болсон
+  // userText: { ... }, // userName, userDetails болсон
+  // Button: { ... }, // ActionItem болсон
+  // IconContainer: { ... }, // actionIconContainer болсон
+  // Content: { ... },
+  // Text: { ... }, // actionLabel болсон
 });
 
 export default ProfileScreen;

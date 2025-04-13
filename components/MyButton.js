@@ -20,8 +20,10 @@ const styles = {
     justifyContent: "center",
     borderRadius: 10,
     width: "70%",
+    height: 35,
     paddingVertical: 5,
-    backgroundColor: "tomato",
+    paddingHorizontal: 10,
+    backgroundColor: "#FFB22C",
   },
   btnText: {
     fontSize: 14,

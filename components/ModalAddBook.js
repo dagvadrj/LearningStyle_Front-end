@@ -11,6 +11,9 @@ import {
   ScrollView,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
+import MyButton from "./MyButton";
+import { Ionicons } from "@expo/vector-icons";
+import { color } from "./../node_modules/nativewind/src/tailwind/color";
 
 const ModalAddBook = ({
   visible,
@@ -31,37 +34,53 @@ const ModalAddBook = ({
       <Modal visible={visible} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Ном нэмэх</Text>
+            <Text style={styles.modalTitle}>Хичээл оруулах</Text>
 
             <ScrollView contentContainerStyle={styles.scrollView}>
+              <View style={styles.modalButtonContainer}>
+                <TouchableOpacity
+                  onPress={() => alert("Зураг оруулах")}
+                  style={styles.modalButton}
+                  value={newBook.logo}
+                  onChangeText={(text) =>
+                    setNewBook({ ...newBook, logo: text })
+                  }
+                >
+                  <Ionicons
+                    name="image-outline"
+                    size={30}
+                    color={"#fff"}
+                  ></Ionicons>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => alert("Номын файл оруулах")}
+                  style={styles.modalButton}
+                  value={newBook.url}
+                  onChangeText={(text) => setNewBook({ ...newBook, url: text })}
+                >
+                  <Ionicons
+                    name="document-outline"
+                    size={30}
+                    color={"#fff"}
+                  ></Ionicons>
+                </TouchableOpacity>
+              </View>
               <TextInput
-                placeholder="Зургийн URL"
-                style={styles.input}
-                value={newBook.logo}
-                onChangeText={(text) => setNewBook({ ...newBook, logo: text })}
-              />
-              <TextInput
-                placeholder="Номын URL"
-                style={styles.input}
-                value={newBook.url}
-                onChangeText={(text) => setNewBook({ ...newBook, url: text })}
-              />
-              <TextInput
-                placeholder="Номын нэр"
+                placeholder="Хичээлийн нэр"
                 style={styles.input}
                 value={newBook.title}
                 onChangeText={(text) => setNewBook({ ...newBook, title: text })}
               />
-              <TextInput
+              {/* <TextInput
                 placeholder="Зохиогч"
                 style={styles.input}
                 value={newBook.author}
                 onChangeText={(text) =>
                   setNewBook({ ...newBook, author: text })
                 }
-              />
+              /> */}
 
-              <Text style={styles.sectionTitle}>Ангилал сонгох</Text>
+              <Text style={styles.sectionTitle}>Хичээлийн ангилал сонгох</Text>
               <View style={styles.pickerContainer}>
                 <Picker
                   selectedValue={selectedCategory}
@@ -99,14 +118,6 @@ const ModalAddBook = ({
                 style={styles.input}
                 value={userName}
               />
-
-              <TextInput
-                placeholder="Үнэ"
-                style={styles.input}
-                keyboardType="numeric"
-                value={newBook.price}
-                onChangeText={(text) => setNewBook({ ...newBook, price: text })}
-              />
             </ScrollView>
 
             <View style={styles.modalButtonContainer}>
@@ -136,14 +147,13 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalContent: {
-    width: "90%",
+    width: "70%",
     backgroundColor: "#fff",
     padding: 20,
     borderRadius: 10,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 16,
     marginBottom: 10,
     textAlign: "center",
   },
@@ -180,21 +190,22 @@ const styles = StyleSheet.create({
   },
   modalButtonContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-around",
     marginTop: 15,
   },
   modalButton: {
-    backgroundColor: "#075eec",
+    backgroundColor: "tomato",
     paddingVertical: 12,
     paddingHorizontal: 25,
     borderRadius: 8,
+    marginBottom: 10,
   },
   cancelButton: {
-    backgroundColor: "gray",
+    backgroundColor: "#ccc",
   },
   modalButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 14,
   },
 });
 

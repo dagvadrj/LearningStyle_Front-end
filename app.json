@@ -4,14 +4,14 @@
     "slug": "frontend1",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "https://assets.withfra.me/SignIn.2.png",
+    "icon": "./assets/nexoraLogoWhite.png",
     "userInterfaceStyle": "light",
     "statusBar": {
       "style": "dark"
     },
     "newArchEnabled": true,
     "splash": {
-      "image": "https://assets.withfra.me/SignIn.2.png",
+      "image": "./assets/nexoraLogoWhite.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -21,7 +21,13 @@
         {
           "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
           "savePhotosPermission": "Allow $(PRODUCT_NAME) to save photos.",
-          "isAccessMediaLocationEnabled": "true"
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow this app to access your microphone"
         }
       ]
     ],
@@ -29,10 +35,15 @@
       "supportsTablet": true,
       "backgroundColor": "#ffffff",
       "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        },
         "NSCameraUsageDescription": "This app uses the camera to scan barcodes on event tickets.",
+        "NSMicrophoneUsageDescription": "This app needs microphone access for audio playback.",
+        "UIBackgroundModes": ["audio"],
         "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.dagvadorj.BolowsroliinSystem"
+      "bundleIdentifier": "com.bssab.learningStyle"
     },
     "android": {
       "adaptiveIcon": {

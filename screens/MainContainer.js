@@ -2,37 +2,19 @@ import React, { useState, useEffect, useCallback } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "@react-navigation/native";
-
 // Screens
 import HomeScreen from "./HomeScreen";
-import LoginScreen from "./LoginScreen";
 import ProfileScreen from "./ProfileScreen";
-import SearchScreen from "./SearchScreen";
-import TestScreen from "./TestScreen";
+import ChatScreen from './AIScreen';
 
 // Screen names
 const homeName = "Home";
-const loginName = "Login";
 const profileName = "Profile";
-const searchName = "Search";
+const chatBotName = "ChatScreen"
 
 const Tab = createBottomTabNavigator();
 
-function MainContainer() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    const checkLoginStatus = async () => {
-      const token = await AsyncStorage.getItem("user_token");
-      console.log("Token:", token);
-      setIsLoggedIn(!!token);
-    };
-  
-    checkLoginStatus();
-  }, [isLoggedIn]); // ✅ Токен өөрчлөгдөх бүрт энэ useEffect ажиллана
-  
-
+function MainContainer({ navigation }) {
   return (
     <Tab.Navigator
       initialRouteName={homeName}
@@ -43,19 +25,18 @@ function MainContainer() {
           let rn = route.name;
 
           if (rn === homeName) {
-            iconName = focused ? "home" : "home-outline";
-          } else if (rn === searchName) {
-            iconName = focused ? "search" : "search-outline";
-          } else if (rn === loginName) {
-            iconName = focused ? "log-in" : "log-in-outline";
+            iconName = focused ? "folder" : "folder-outline";
+          }else if (rn === chatBotName) {
+            iconName = focused ? "chatbox-ellipses" : "chatbox-ellipses-outline";
           } else if (rn === profileName) {
             iconName = focused ? "person" : "person-outline";
           }
-
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarLabel: () => null, // 🔹 Tab label-ийг нуух
-        tabBarActiveTintColor: "tomato",
+        tabBarLabelStyle: {
+          fontWeight: 700,
+        },
+        tabBarActiveTintColor: "#FFB22C",
         tabBarInactiveTintColor: "grey",
         tabBarStyle: {
           paddingTop: 10,
@@ -64,14 +45,21 @@ function MainContainer() {
         },
       })}
     >
-      <Tab.Screen name={homeName} component={HomeScreen} />
-      <Tab.Screen name={searchName} component={SearchScreen} />
-
-      {isLoggedIn ? (
-        <Tab.Screen name={profileName} component={ProfileScreen} />
-      ) : (
-        <Tab.Screen name={loginName} component={LoginScreen} />
-      )}
+      <Tab.Screen
+        name={homeName}
+        component={HomeScreen}
+        options={{ title: "Хичээл " }}
+      />
+      <Tab.Screen
+      name={chatBotName}
+      component={ChatScreen}
+      options={{ title: "Чат бот" }}
+    />
+      <Tab.Screen
+        name={profileName}
+        component={ProfileScreen}
+        options={{ title: "Профайл" }}
+      />
     </Tab.Navigator>
   );
 }
