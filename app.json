@@ -1,17 +1,17 @@
 {
   "expo": {
-    "name": "frontend1",
-    "slug": "frontend1",
+    "name": "Nexora",
+    "slug": "Nexora",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/nexoraLogoWhite.png",
+    "icon": "./assets/nexoraLogoBlue.png",
     "userInterfaceStyle": "light",
     "statusBar": {
       "style": "dark"
     },
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/nexoraLogoWhite.png",
+      "image": "./assets/nexoraLogoYellow.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -43,16 +43,16 @@
         "UIBackgroundModes": ["audio"],
         "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.bssab.learningStyle"
+      "bundleIdentifier": "com.bssab.nexora"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "https://assets.withfra.me/SignIn.2.png",
+        "foregroundImage": "./assets/nexoraLogoBlue.png",
         "backgroundColor": "#ffffff"
       }
     },
     "web": {
-      "favicon": "https://assets.withfra.me/SignIn.2.png"
+      "favicon": "./assets/nexoraLogoBlue.png"
     },
     "expo-media-library": {
       "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",

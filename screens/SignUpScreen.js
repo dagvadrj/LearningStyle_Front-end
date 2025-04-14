@@ -10,7 +10,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView
+  Image,
+  ScrollView,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MyButton from "../components/MyButton";
@@ -76,7 +77,6 @@ const SignUp = ({ navigation }) => {
         { headers: { "Content-Type": "application/json" } }
       );
       console.log("Response:", response.data);
-      
 
       if (response.status === 201) {
         Alert.alert("Амжилттай", "Бүртгэл амжилттай! Нэвтэрнэ үү.", [
@@ -85,16 +85,16 @@ const SignUp = ({ navigation }) => {
       } else {
         throw new Error(response.data.error || "Алдаа гарлаа.");
       }
-    }catch (error) {
+    } catch (error) {
       console.log("Бүрэн алдааны мэдээлэл:", error);
       console.log("Хариу:", error.response);
       console.log("Хариуны өгөгдөл:", error.response?.data);
-      
+
       // Алдааны мессежийг илүү найдвартай болгох
       let errorMessage = "Бүртгэл үүсгэхэд алдаа гарлаа";
-      
+
       if (error.response && error.response.data) {
-        if (typeof error.response.data === 'string') {
+        if (typeof error.response.data === "string") {
           errorMessage = error.response.data;
         } else if (error.response.data.error) {
           errorMessage = error.response.data.error;
@@ -104,14 +104,14 @@ const SignUp = ({ navigation }) => {
           errorMessage = error.response.data.msg;
         }
       }
-      
+
       setError(errorMessage);
     }
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-      <View style={styles.header}>
+      <View style={styles.backArrow}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons
             name="chevron-back-outline"
@@ -119,93 +119,103 @@ const SignUp = ({ navigation }) => {
             color="black"
           ></Ionicons>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Бүртгүүлэх</Text>
+        <Text style={styles.backArrowTitle}>Бүртгүүлэх</Text>
       </View>
-      <KeyboardAvoidingView  style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
         <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
         <View style={styles.form}>
           {error && <Text style={styles.error}>{error}</Text>}
-          <ScrollView 
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={{ flexDirection: "row", marginTop: 20 }}>
-            <TextInput
-              style={styles.rowInput}
-              placeholder="Нэр"
-              value={first_name}
-              onChangeText={setFirstname}
-            />
-            <TextInput
-              style={styles.rowInput}
-              placeholder="Овог"
-              value={last_name}
-              onChangeText={setLastname}
-            />
-          </View>
-          <TextInput
-            style={styles.input}
-            placeholder="И-мэйл"
-            value={email}
-            keyboardType="email-address"
-            onChangeText={setEmail}
-          />
-
-          <RegisterInput
-            onRegisterChange={(isValid, registerString) => {
-              if (isValid) {
-                setRegister(registerString);
-              }
-            }}
-          />
-          <TextInput
-            style={styles.input}
-            keyboardType="phone-pad"
-            placeholder="Утасны дугаар"
-            value={phone_number}
-            onChangeText={setPhonenumber}
-          />
-          <View style={{ flexDirection: "row", marginBottom: 20 }}>
-            <TextInput
-              style={styles.rowInput}
-              placeholder="Нууц үг"
-              value={password}
-              secureTextEntry
-              onChangeText={setPassword}
-            />
-            <TextInput
-              style={styles.rowInput}
-              placeholder="Нууц үг давтах"
-              value={password1}
-              secureTextEntry
-              onChangeText={setPassword1}
-            />
-          </View>
-
-          <MyButton onPress={handleSubmit} disabled={isLoading}>
-            <Text style={styles.buttonText}>
-              {isLoading ? "Бүртгүүлж байна..." : "Бүртгүүлэх"}
-            </Text>
-          </MyButton>
-
-          <TouchableOpacity
-            disabled={isLoading}
-            onPress={() => {
-              navigation.goBack();
-            }}
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
           >
-            <Text
-              style={{
-                alignSelf: "center",
-                marginVertical: 20,
-                fontWeight: "600",
+            <View style={styles.header}>
+              <Image
+                alt="App Logo"
+                resizeMode="contain"
+                style={{ height: "30%", width: "100%" }}
+                source={require("../assets/nexoraBannerTransparent.png")} // Check image path
+              />
+            </View>
+            <View style={{ flexDirection: "row", marginTop: 20 }}>
+              <TextInput
+                style={styles.rowInput}
+                placeholder="Нэр"
+                value={first_name}
+                onChangeText={setFirstname}
+              />
+              <TextInput
+                style={styles.rowInput}
+                placeholder="Овог"
+                value={last_name}
+                onChangeText={setLastname}
+              />
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="И-мэйл"
+              value={email}
+              keyboardType="email-address"
+              onChangeText={setEmail}
+            />
+
+            <RegisterInput
+              onRegisterChange={(isValid, registerString) => {
+                if (isValid) {
+                  setRegister(registerString);
+                }
+              }}
+            />
+            <TextInput
+              style={styles.input}
+              keyboardType="phone-pad"
+              placeholder="Утасны дугаар"
+              value={phone_number}
+              onChangeText={setPhonenumber}
+            />
+            <View style={{ flexDirection: "row", marginBottom: 20 }}>
+              <TextInput
+                style={styles.rowInput}
+                placeholder="Нууц үг"
+                value={password}
+                secureTextEntry
+                onChangeText={setPassword}
+              />
+              <TextInput
+                style={styles.rowInput}
+                placeholder="Нууц үг давтах"
+                value={password1}
+                secureTextEntry
+                onChangeText={setPassword1}
+              />
+            </View>
+
+            <MyButton onPress={handleSubmit} disabled={isLoading}>
+              <Text style={styles.buttonText}>
+                {isLoading ? "Бүртгүүлж байна..." : "Бүртгүүлэх"}
+              </Text>
+            </MyButton>
+
+            <TouchableOpacity
+              disabled={isLoading}
+              onPress={() => {
+                navigation.goBack();
               }}
             >
-              Нэвтрэх
-            </Text>
-          </TouchableOpacity>
+              <Text
+                style={{
+                  alignSelf: "center",
+                  marginVertical: 20,
+                  fontWeight: "600",
+                }}
+              >
+                Нэвтрэх
+              </Text>
+            </TouchableOpacity>
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
@@ -223,19 +233,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
-  form: { flex: 1,
-    width: '100%',
-    alignItems: 'center',
-    paddingTop: 20,},
-  header: {
+  form: { flex: 1, width: "100%", alignItems: "center", paddingTop: 20 },
+  backArrow: {
     flexDirection: "row",
     justifyContent: "flex-start",
     alignItems: "center",
     paddingVertical: 15,
+    marginBottom: -30,
     borderBottomColor: "#ddd",
     marginLeft: 20,
   },
-  headerTitle: { fontSize: 18, color: "black", marginLeft: 20 },
+  backArrowTitle: { fontSize: 18, color: "black", marginLeft: 20 },
+  header: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20, // Reduced padding
+  },
   input: {
     borderBottomWidth: 1,
     borderBottomColor: "#ccc",
@@ -259,6 +272,11 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     fontWeight: "600",
     color: "#fff",
+  },
+  headerImg: {
+    width: "100%",
+    height: "60%",
+    marginBottom: 16, // Reduced margin
   },
 });
 

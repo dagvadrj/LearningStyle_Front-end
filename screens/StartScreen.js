@@ -1,20 +1,19 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { StyleSheet, Text, View, SafeAreaView, Image } from "react-native"
-import { useNavigation } from "@react-navigation/native"
-import BeautifulProgressBar from "./ProgressBar"
+import { useEffect, useState } from "react";
+import { StyleSheet, Text, View, SafeAreaView, Image } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import BeautifulProgressBar from "./ProgressBar";
 
-import AsyncStorage from "@react-native-async-storage/async-storage"
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Start() {
-  const [progressValue, setProgressValue] = useState(0)
-  const navigation = useNavigation()
-
+  const [progressValue, setProgressValue] = useState(0);
+  const navigation = useNavigation();
   useEffect(() => {
     const checkTokenAndNavigate = async () => {
       const savedToken = await AsyncStorage.getItem("user_token");
-  
+
       let current = 0;
       const interval = setInterval(() => {
         current += 1;
@@ -31,16 +30,20 @@ export default function Start() {
         }
       }, 20); // 500ms болгож progress animation-тай уялдуулсан
     };
-  
+
     checkTokenAndNavigate();
   }, []);
-  
 
   return (
     <SafeAreaView style={styles.container}>
       <Image
-        style={{ width: 100, height: 100, alignSelf: "center", objectFit: "contain" }}
-        source={require("../assets/nexoraLogoWhite.png")}
+        style={{
+          width: 100,
+          height: 100,
+          alignSelf: "center",
+          objectFit: "contain",
+        }}
+        source={require("../assets/nexoraLogoNoFrame.png")}
       />
 
       <View style={styles.progressContainer}>
@@ -60,7 +63,7 @@ export default function Start() {
         <Text style={styles.progressText}>{progressValue}%</Text>
       </View>
     </SafeAreaView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -69,7 +72,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "flex-start",
-    paddingTop: 50,
+    paddingTop: 100,
   },
   progressContainer: {
     flex: 1,
@@ -89,4 +92,4 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 10,
   },
-})
+});
